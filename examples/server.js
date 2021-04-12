@@ -1,73 +1,93 @@
-const fs = require('fs')
-const path = require('path')
+const express = require('express')
+const bodyParser = require('body-parser')
 const webpack = require('webpack')
+const webpackDevMiddleware = require('webpack-dev-middleware')
+const webpackHotMiddleware = require('webpack-hot-middleware')
+const WebpackConfig = require('./webpack.config')
 
-module.exports = {
-  mode: 'development',
+const app = express()
+const compiler = webpack(WebpackConfig)
 
-  /**
-   * 我们会在 examples 目录下建多个子目录
-   * 我们会把不同章节的 demo 放到不同的子目录中
-   * 每个子目录的下会创建一个 app.ts
-   * app.ts 作为 webpack 构建的入口文件
-   * entries 收集了多目录个入口文件，并且每个入口还引入了一个用于热更新的文件
-   * entries 是一个对象，key 为目录名
-   */
-  entry: fs.readdirSync(__dirname).reduce((entries, dir) => {
-    const fullDir = path.join(__dirname, dir)
-    const entry = path.join(fullDir, 'app.ts')
-    if (fs.statSync(fullDir).isDirectory() && fs.existsSync(entry)) {
-      entries[dir] = ['webpack-hot-middleware/client', entry]
-    }
-    return entries
-  }, {}),
+app.use(webpackDevMiddleware(compiler, {
+  publicPath: '/__build__/',
+  stats: {
+    colors: true,
+    chunks: false
+  }
+}))
 
-  /**
-   * 根据不同的目录名称，打包生成目标 js，名称和目录名一致
-   */
-  output: {
-    path: path.join(__dirname, '__build__'),
-    filename: '[name].js',
-    publicPath: '/__build__/'
-  },
+app.use(webpackHotMiddleware(compiler))
 
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        enforce: 'pre',
-        use: [
-          {
-            loader: 'tslint-loader'
-          }
-        ]
-      },
-      {
-        test: /\.tsx?$/,
-        use: [
-          {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: true
-            }
-          }
-        ]
-      },
-      {
-        test: /\.css$/,
-        use: [
-          'style-loader', 'css-loader'
-        ]
-      }
-    ]
-  },
+app.use(express.static(__dirname, {
+  setHeaders (res) {
+    res.cookie('XSRF-TOKEN-D', '1234abc')
+  }
+}))
 
-  resolve: {
-    extensions: ['.ts', '.tsx', '.js']
-  },
+app.use(webpackHotMiddleware(compiler))
 
-  plugins: [
-    new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoEmitOnErrorsPlugin()
-  ]
-}
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+
+const router = express.Router()
+
+router.get('/base/get', function(req, res){
+    res.json(req.query)
+})
+
+router.post('/base/post', function(req, res) {
+    res.json(req.body)
+})
+
+registerExtendRouter()
+
+app.use(router)
+
+const port = process.env.PORT || 8080
+module.exports = app.listen(port, () => {
+  console.log(`Server listening on http://localhost:${port}, Ctrl+C to stop`)
+})
+
+
+function registerExtendRouter() {
+    router.get('/extend/get', function(req, res) {
+      res.json({
+        msg: 'hello world'
+      })
+    })
+  
+    router.options('/extend/options', function(req, res) {
+      res.end()
+    })
+  
+    router.delete('/extend/delete', function(req, res) {
+      res.end()
+    })
+  
+    router.head('/extend/head', function(req, res) {
+      res.end()
+    })
+  
+    router.post('/extend/post', function(req, res) {
+      res.json(req.body)
+    })
+  
+    router.put('/extend/put', function(req, res) {
+      res.json(req.body)
+    })
+  
+    router.patch('/extend/patch', function(req, res) {
+      res.json(req.body)
+    })
+  
+    router.get('/extend/user', function(req, res) {
+      res.json({
+        code: 0,
+        message: 'ok',
+        result: {
+          name: 'jack',
+          age: 18
+        }
+      })
+    })
+  }
