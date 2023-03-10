@@ -14,5 +14,10 @@
     "outDir": "dist/lib",
     "typeRoots": ["node_modules/@types"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
 }
