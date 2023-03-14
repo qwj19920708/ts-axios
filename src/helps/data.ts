@@ -6,3 +6,14 @@ export const transformRequest = (data: any): any => {
   }
   return data
 }
+
+export const transformResponse = (data: any): any => {
+  if (!isPlainObject(data)) {
+    try {
+      data = JSON.parse(data)
+    } catch (e) {
+      // do nothing
+    }
+  }
+  return data
+}
